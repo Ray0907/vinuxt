@@ -1,0 +1,51 @@
+{
+	"name": "vinuxt",
+	"version": "0.0.1",
+	"description": "Run Nuxt apps on Vite. Drop-in replacement for the nuxt CLI.",
+	"license": "MIT",
+	"type": "module",
+	"engines": { "node": ">=22" },
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"bin": { "vinuxt": "dist/cli.js" },
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./composables": {
+			"import": "./dist/composables/index.js",
+			"types": "./dist/composables/index.d.ts"
+		},
+		"./cloudflare": {
+			"import": "./dist/cloudflare/index.js",
+			"types": "./dist/cloudflare/index.d.ts"
+		},
+		"./server/prod-server": {
+			"import": "./dist/server/prod-server.js",
+			"types": "./dist/server/prod-server.d.ts"
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch"
+	},
+	"peerDependencies": {
+		"vue": ">=3.6.0-beta.1",
+		"vite": "^7.0.0"
+	},
+	"dependencies": {
+		"@unhead/vue": "^2.0.0",
+		"@unpic/vue": "^1.0.0",
+		"magic-string": "^0.30.21",
+		"unimport": "^4.0.0",
+		"vite-tsconfig-paths": "^6.1.1",
+		"vue-router": "^4.5.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.2.3",
+		"vite": "^7.3.1",
+		"vue": "^3.6.0-beta.1"
+	}
+}

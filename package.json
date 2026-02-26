@@ -1,0 +1,21 @@
+{
+	"name": "vinuxt-monorepo",
+	"private": true,
+	"packageManager": "pnpm@10.30.0",
+	"scripts": {
+		"build": "pnpm --filter vinuxt run build",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsgo --noEmit",
+		"lint": "oxlint --deny-warnings"
+	},
+	"devDependencies": {
+		"@types/node": "^25.2.3",
+		"@typescript/native-preview": "^7.0.0-dev.20260213.1",
+		"oxlint": "^1.47.0",
+		"typescript": "^5.7.0",
+		"vite": "^7.3.1",
+		"vitest": "^4.0.0",
+		"vue": "^3.6.0-beta.1"
+	}
+}
