@@ -86,6 +86,8 @@ interface ParsedArgs {
   port?: number;
   hostname?: string;
   help?: boolean;
+  skip_check?: boolean;
+  force?: boolean;
 }
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -102,6 +104,10 @@ function parseArgs(args: string[]): ParsedArgs {
       result.hostname = args[++i];
     } else if (arg.startsWith("--hostname=")) {
       result.hostname = arg.split("=")[1];
+    } else if (arg === "--skip-check") {
+      result.skip_check = true;
+    } else if (arg === "--force") {
+      result.force = true;
     }
   }
   return result;
@@ -379,18 +385,23 @@ async function check() {
   const parsed = parseArgs(rawArgs);
   if (parsed.help) return printHelp("check");
 
-  // TODO: implement check -- requires ./check.js
-  console.log("\n  vinuxt check is not yet implemented.\n");
-  process.exit(1);
+  const { runCheck, formatReport } = await import("./check.js");
+  const root = process.cwd();
+  const result = runCheck(root);
+  console.log(formatReport(result));
 }
 
 async function initCommand() {
   const parsed = parseArgs(rawArgs);
   if (parsed.help) return printHelp("init");
 
-  // TODO: implement init -- requires ./init.js
-  console.log("\n  vinuxt init is not yet implemented.\n");
-  process.exit(1);
+  const { init } = await import("./init.js");
+  await init({
+    root: process.cwd(),
+    port: parsed.port,
+    skip_check: parsed.skip_check,
+    force: parsed.force,
+  });
 }
 
 // --- Help ----------------------------------------------------------------------
