@@ -1,0 +1,5 @@
+{
+	"name": "basic-app",
+	"private": true,
+	"type": "module"
+}

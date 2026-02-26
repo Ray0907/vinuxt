@@ -6,9 +6,32 @@ import {
 } from "./routing/router.js";
 import { loadVinuxtConfig, type VinuxtConfig } from "./config/vinuxt-config.js";
 import { createSSRHandler } from "./server/dev-server.js";
+import vue from "@vitejs/plugin-vue";
 import tsconfigPaths from "vite-tsconfig-paths";
 import path from "node:path";
 import fs from "node:fs";
+import { createRequire } from "node:module";
+
+/**
+ * require() function anchored to vinuxt's own location.
+ * Used to resolve packages from vinuxt's node_modules regardless of CWD.
+ */
+const _require = createRequire(import.meta.url);
+
+/**
+ * Resolve a package's root directory from vinuxt's own node_modules.
+ * Uses _require.resolve to find the main entry, then walks up to the
+ * directory containing package.json.
+ */
+function resolvePackageDir(pkg: string): string {
+  const entry = _require.resolve(pkg);
+  let dir = path.dirname(entry);
+  while (dir !== path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, "package.json"))) return dir;
+    dir = path.dirname(dir);
+  }
+  return path.dirname(entry);
+}
 
 // ---------------------------------------------------------------------------
 // Virtual module IDs
@@ -165,8 +188,15 @@ export default function vinuxt(): Plugin[] {
           alias: {
             "#imports": "virtual:vinuxt-imports",
             "#app": "virtual:vinuxt-app",
+            // Point Vite to vinuxt's own copies of these packages so
+            // they resolve even when the user's project doesn't have
+            // them installed (pnpm strict isolation).
+            "vue-router": resolvePackageDir("vue-router"),
           },
           dedupe: ["vue", "vue-router", "@vue/runtime-core"],
+        },
+        ssr: {
+          noExternal: ["vue-router", "@unhead/vue", "@unpic/vue"],
         },
         define,
       };
@@ -253,7 +283,11 @@ export default function vinuxt(): Plugin[] {
     },
   };
 
-  return [corePlugin, tsconfigPaths() as unknown as Plugin];
+  return [
+    vue() as unknown as Plugin,
+    corePlugin,
+    tsconfigPaths() as unknown as Plugin,
+  ];
 }
 
 // ---------------------------------------------------------------------------

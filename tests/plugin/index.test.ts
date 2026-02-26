@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import vinuxt, { clientOutputConfig, clientTreeshakeConfig } from "../../packages/vinuxt/src/index.js";
 
+function findCorePlugin(plugins: any[]) {
+	return plugins.find((p: any) => p.name === "vinuxt:core");
+}
+
 describe("vinuxt plugin", () => {
 	it("returns an array of Vite plugins", () => {
 		const plugins = vinuxt();
@@ -8,14 +12,16 @@ describe("vinuxt plugin", () => {
 		expect(plugins.length).toBeGreaterThan(0);
 	});
 
-	it("has vinuxt:core as first plugin", () => {
+	it("includes vinuxt:core plugin", () => {
 		const plugins = vinuxt();
-		expect(plugins[0].name).toBe("vinuxt:core");
+		const core = findCorePlugin(plugins);
+		expect(core).toBeDefined();
+		expect(core.name).toBe("vinuxt:core");
 	});
 
 	it("resolves virtual:vinuxt-* module IDs", () => {
 		const plugins = vinuxt();
-		const core = plugins[0] as any;
+		const core = findCorePlugin(plugins) as any;
 
 		expect(core.resolveId("virtual:vinuxt-client-entry"))
 			.toBe("\0virtual:vinuxt-client-entry");
@@ -31,14 +37,14 @@ describe("vinuxt plugin", () => {
 
 	it("does not resolve non-vinuxt virtual modules", () => {
 		const plugins = vinuxt();
-		const core = plugins[0] as any;
+		const core = findCorePlugin(plugins) as any;
 		expect(core.resolveId("virtual:other-thing")).toBeUndefined();
 		expect(core.resolveId("./some-file.ts")).toBeUndefined();
 	});
 
 	it("loads virtual modules with valid code", async () => {
 		const plugins = vinuxt();
-		const core = plugins[0] as any;
+		const core = findCorePlugin(plugins) as any;
 
 		const appCode = await core.load("\0virtual:vinuxt-app");
 		expect(appCode).toContain("RouterView");
