@@ -3,6 +3,6 @@
 	"private": true,
 	"type": "module",
 	"devDependencies": {
-		"nuxt": "^3.16"
+		"nuxt": "^4.0.0"
 	}
 }
