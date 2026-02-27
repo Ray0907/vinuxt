@@ -25,39 +25,42 @@
  */
 
 import type {
-	CacheHandler,
-	CacheHandlerValue,
-	IncrementalCacheValue,
+  CacheHandler,
+  CacheHandlerValue,
+  IncrementalCacheValue,
 } from "../server/isr-cache.js";
 
 // Cloudflare KV namespace interface (matches Workers types)
 interface KVNamespace {
-	get(key: string, options?: { type?: string }): Promise<string | null>;
-	get(key: string, options: { type: "arrayBuffer" }): Promise<ArrayBuffer | null>;
-	put(
-		key: string,
-		value: string | ArrayBuffer | ReadableStream,
-		options?: { expirationTtl?: number; metadata?: Record<string, unknown> },
-	): Promise<void>;
-	delete(key: string): Promise<void>;
-	list(options?: {
-		prefix?: string;
-		limit?: number;
-		cursor?: string;
-	}): Promise<{
-		keys: Array<{ name: string; metadata?: Record<string, unknown> }>;
-		list_complete: boolean;
-		cursor?: string;
-	}>;
+  get(key: string, options?: { type?: string }): Promise<string | null>;
+  get(
+    key: string,
+    options: { type: "arrayBuffer" },
+  ): Promise<ArrayBuffer | null>;
+  put(
+    key: string,
+    value: string | ArrayBuffer | ReadableStream,
+    options?: { expirationTtl?: number; metadata?: Record<string, unknown> },
+  ): Promise<void>;
+  delete(key: string): Promise<void>;
+  list(options?: {
+    prefix?: string;
+    limit?: number;
+    cursor?: string;
+  }): Promise<{
+    keys: Array<{ name: string; metadata?: Record<string, unknown> }>;
+    list_complete: boolean;
+    cursor?: string;
+  }>;
 }
 
 /** Shape stored in KV for each cache entry. */
 interface KVCacheEntry {
-	value: IncrementalCacheValue | null;
-	tags: string[];
-	last_modified: number;
-	/** Absolute timestamp (ms) after which the entry is "stale" (but still served). */
-	revalidate_at: number | null;
+  value: IncrementalCacheValue | null;
+  tags: string[];
+  last_modified: number;
+  /** Absolute timestamp (ms) after which the entry is "stale" (but still served). */
+  revalidate_at: number | null;
 }
 
 /** Key prefix for tag invalidation timestamps. */
@@ -75,214 +78,215 @@ const MAX_TAG_LENGTH = 256;
  * separator -- allowing `:` in user tags could cause ambiguous key lookups.
  */
 function validateTag(tag: string): string | null {
-	if (typeof tag !== "string" || tag.length === 0 || tag.length > MAX_TAG_LENGTH) return null;
-	// Block control characters, path separators, and KV-special characters.
-	// eslint-disable-next-line no-control-regex -- intentional: reject control chars in tags
-	if (/[\x00-\x1f/\\:]/.test(tag)) return null;
-	return tag;
+  if (
+    typeof tag !== "string" ||
+    tag.length === 0 ||
+    tag.length > MAX_TAG_LENGTH
+  )
+    return null;
+  // Block control characters, path separators, and KV-special characters.
+  // eslint-disable-next-line no-control-regex -- intentional: reject control chars in tags
+  if (/[\x00-\x1f/\\:]/.test(tag)) return null;
+  return tag;
 }
 
 export class KVCacheHandler implements CacheHandler {
-	private kv: KVNamespace;
-	private prefix: string;
+  private kv: KVNamespace;
+  private prefix: string;
 
-	constructor(kv_namespace: KVNamespace, options?: { appPrefix?: string }) {
-		this.kv = kv_namespace;
-		this.prefix = options?.appPrefix ? `${options.appPrefix}:` : "";
-	}
+  constructor(kv_namespace: KVNamespace, options?: { appPrefix?: string }) {
+    this.kv = kv_namespace;
+    this.prefix = options?.appPrefix ? `${options.appPrefix}:` : "";
+  }
 
-	async get(
-		key: string,
-		_ctx?: Record<string, unknown>,
-	): Promise<CacheHandlerValue | null> {
-		const kv_key = this.prefix + ENTRY_PREFIX + key;
-		const raw = await this.kv.get(kv_key);
-		if (!raw) return null;
+  async get(
+    key: string,
+    _ctx?: Record<string, unknown>,
+  ): Promise<CacheHandlerValue | null> {
+    const kv_key = this.prefix + ENTRY_PREFIX + key;
+    const raw = await this.kv.get(kv_key);
+    if (!raw) return null;
 
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(raw);
-		} catch {
-			// Corrupted JSON -- delete and treat as miss
-			await this.kv.delete(kv_key);
-			return null;
-		}
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // Corrupted JSON -- delete and treat as miss
+      await this.kv.delete(kv_key);
+      return null;
+    }
 
-		// Validate deserialized shape before using
-		const entry = validateCacheEntry(parsed);
-		if (!entry) {
-			console.error("[vinuxt] Invalid cache entry shape for key:", key);
-			await this.kv.delete(kv_key);
-			return null;
-		}
+    // Validate deserialized shape before using
+    const entry = validateCacheEntry(parsed);
+    if (!entry) {
+      console.error("[vinuxt] Invalid cache entry shape for key:", key);
+      await this.kv.delete(kv_key);
+      return null;
+    }
 
-		// Restore ArrayBuffer fields that were base64-encoded for JSON storage
-		if (entry.value) {
-			const ok = restoreArrayBuffers(entry.value);
-			if (!ok) {
-				// base64 decode failed -- corrupted entry, treat as miss
-				await this.kv.delete(kv_key);
-				return null;
-			}
-		}
+    // Restore ArrayBuffer fields that were base64-encoded for JSON storage
+    if (entry.value) {
+      const ok = restoreArrayBuffers(entry.value);
+      if (!ok) {
+        // base64 decode failed -- corrupted entry, treat as miss
+        await this.kv.delete(kv_key);
+        return null;
+      }
+    }
 
-		// Check tag-based invalidation (parallel for lower latency)
-		if (entry.tags.length > 0) {
-			const tag_results = await Promise.all(
-				entry.tags.map((tag) => this.kv.get(this.prefix + TAG_PREFIX + tag)),
-			);
-			for (let i = 0; i < entry.tags.length; i++) {
-				const tag_time = tag_results[i];
-				if (tag_time) {
-					const tag_timestamp = Number(tag_time);
-					if (Number.isNaN(tag_timestamp) || tag_timestamp >= entry.last_modified) {
-						// Tag was invalidated after this entry, or timestamp is corrupted
-						// -- treat as miss to force re-render
-						await this.kv.delete(kv_key);
-						return null;
-					}
-				}
-			}
-		}
+    // Check tag-based invalidation (parallel for lower latency)
+    if (entry.tags.length > 0) {
+      const tag_results = await Promise.all(
+        entry.tags.map((tag) => this.kv.get(this.prefix + TAG_PREFIX + tag)),
+      );
+      for (let i = 0; i < entry.tags.length; i++) {
+        const tag_time = tag_results[i];
+        if (tag_time) {
+          const tag_timestamp = Number(tag_time);
+          if (
+            Number.isNaN(tag_timestamp) ||
+            tag_timestamp >= entry.last_modified
+          ) {
+            // Tag was invalidated after this entry, or timestamp is corrupted
+            // -- treat as miss to force re-render
+            await this.kv.delete(kv_key);
+            return null;
+          }
+        }
+      }
+    }
 
-		// Check time-based expiry -- return stale with cacheState
-		if (entry.revalidate_at !== null && Date.now() > entry.revalidate_at) {
-			return {
-				lastModified: entry.last_modified,
-				value: entry.value,
-				cacheState: "stale",
-			};
-		}
+    // Check time-based expiry -- return stale with cacheState
+    if (entry.revalidate_at !== null && Date.now() > entry.revalidate_at) {
+      return {
+        lastModified: entry.last_modified,
+        value: entry.value,
+        cacheState: "stale",
+      };
+    }
 
-		return {
-			lastModified: entry.last_modified,
-			value: entry.value,
-		};
-	}
+    return {
+      lastModified: entry.last_modified,
+      value: entry.value,
+    };
+  }
 
-	async set(
-		key: string,
-		data: IncrementalCacheValue | null,
-		ctx?: Record<string, unknown>,
-	): Promise<void> {
-		// Collect, validate, and dedupe tags from data and context
-		const tag_set = new Set<string>();
-		if (data && "tags" in data && Array.isArray(data.tags)) {
-			for (const t of data.tags) {
-				const validated = validateTag(t);
-				if (validated) tag_set.add(validated);
-			}
-		}
-		if (ctx && "tags" in ctx && Array.isArray(ctx.tags)) {
-			for (const t of ctx.tags as string[]) {
-				const validated = validateTag(t);
-				if (validated) tag_set.add(validated);
-			}
-		}
-		const tags = [...tag_set];
+  async set(
+    key: string,
+    data: IncrementalCacheValue | null,
+    ctx?: Record<string, unknown>,
+  ): Promise<void> {
+    // Collect, validate, and dedupe tags from data and context
+    const tag_set = new Set<string>();
+    if (data && "tags" in data && Array.isArray(data.tags)) {
+      for (const t of data.tags) {
+        const validated = validateTag(t);
+        if (validated) tag_set.add(validated);
+      }
+    }
+    if (ctx && "tags" in ctx && Array.isArray(ctx.tags)) {
+      for (const t of ctx.tags as string[]) {
+        const validated = validateTag(t);
+        if (validated) tag_set.add(validated);
+      }
+    }
+    const tags = [...tag_set];
 
-		// Determine revalidation time
-		let revalidate_at: number | null = null;
-		if (ctx) {
-			const revalidate =
-				(ctx as Record<string, unknown>).revalidate;
-			if (typeof revalidate === "number" && revalidate > 0) {
-				revalidate_at = Date.now() + revalidate * 1000;
-			}
-		}
-		if (
-			data &&
-			"revalidate" in data &&
-			typeof data.revalidate === "number" &&
-			data.revalidate > 0
-		) {
-			revalidate_at = Date.now() + data.revalidate * 1000;
-		}
+    // Determine revalidation time
+    let revalidate_at: number | null = null;
+    if (ctx) {
+      const revalidate = (ctx as Record<string, unknown>).revalidate;
+      if (typeof revalidate === "number" && revalidate > 0) {
+        revalidate_at = Date.now() + revalidate * 1000;
+      }
+    }
+    if (
+      data &&
+      "revalidate" in data &&
+      typeof data.revalidate === "number" &&
+      data.revalidate > 0
+    ) {
+      revalidate_at = Date.now() + data.revalidate * 1000;
+    }
 
-		// Prepare entry -- convert ArrayBuffers to base64 for JSON storage
-		const serializable = data ? serializeForJSON(data) : null;
+    // Prepare entry -- convert ArrayBuffers to base64 for JSON storage
+    const serializable = data ? serializeForJSON(data) : null;
 
-		const entry: KVCacheEntry = {
-			value: serializable,
-			tags,
-			last_modified: Date.now(),
-			revalidate_at,
-		};
+    const entry: KVCacheEntry = {
+      value: serializable,
+      tags,
+      last_modified: Date.now(),
+      revalidate_at,
+    };
 
-		// Calculate KV TTL -- keep entries well beyond their revalidate window
-		// (10x revalidate period, clamped to 60s-30d) so stale-while-revalidate
-		// can serve stale content while background regeneration happens.
-		let expiration_ttl: number | undefined;
-		if (revalidate_at !== null) {
-			const revalidate_seconds = Math.ceil((revalidate_at - Date.now()) / 1000);
-			// Keep in KV for 10x the revalidation period, up to 30 days
-			expiration_ttl = Math.min(revalidate_seconds * 10, 30 * 24 * 3600);
-			// KV minimum TTL is 60 seconds
-			expiration_ttl = Math.max(expiration_ttl, 60);
-		}
+    // Calculate KV TTL -- keep entries well beyond their revalidate window
+    // (10x revalidate period, clamped to 60s-30d) so stale-while-revalidate
+    // can serve stale content while background regeneration happens.
+    let expiration_ttl: number | undefined;
+    if (revalidate_at !== null) {
+      const revalidate_seconds = Math.ceil((revalidate_at - Date.now()) / 1000);
+      // Keep in KV for 10x the revalidation period, up to 30 days
+      expiration_ttl = Math.min(revalidate_seconds * 10, 30 * 24 * 3600);
+      // KV minimum TTL is 60 seconds
+      expiration_ttl = Math.max(expiration_ttl, 60);
+    }
 
-		await this.kv.put(this.prefix + ENTRY_PREFIX + key, JSON.stringify(entry), {
-			expirationTtl: expiration_ttl,
-		});
-	}
+    await this.kv.put(this.prefix + ENTRY_PREFIX + key, JSON.stringify(entry), {
+      expirationTtl: expiration_ttl,
+    });
+  }
 
-	async revalidateTag(
-		tags: string | string[],
-		_durations?: { expire?: number },
-	): Promise<void> {
-		const tag_list = Array.isArray(tags) ? tags : [tags];
-		const now = Date.now();
-		const valid_tags = tag_list.filter((t) => validateTag(t) !== null);
-		// Store invalidation timestamp for each tag
-		// Use a long TTL (30 days) so recent invalidations are always found
-		await Promise.all(
-			valid_tags.map((tag) =>
-				this.kv.put(this.prefix + TAG_PREFIX + tag, String(now), {
-					expirationTtl: 30 * 24 * 3600,
-				}),
-			),
-		);
-	}
+  async revalidateTag(
+    tags: string | string[],
+    _durations?: { expire?: number },
+  ): Promise<void> {
+    const tag_list = Array.isArray(tags) ? tags : [tags];
+    const now = Date.now();
+    const valid_tags = tag_list.filter((t) => validateTag(t) !== null);
+    // Store invalidation timestamp for each tag
+    // Use a long TTL (30 days) so recent invalidations are always found
+    await Promise.all(
+      valid_tags.map((tag) =>
+        this.kv.put(this.prefix + TAG_PREFIX + tag, String(now), {
+          expirationTtl: 30 * 24 * 3600,
+        }),
+      ),
+    );
+  }
 
-	resetRequestCache(): void {
-		// No-op -- KV is stateless per request
-	}
+  resetRequestCache(): void {
+    // No-op -- KV is stateless per request
+  }
 }
 
 // --- Validation Helpers ------------------------------------------------------
 
-const VALID_KINDS = new Set([
-	"PAGE",
-	"ROUTE",
-	"REDIRECT",
-	"IMAGE",
-]);
+const VALID_KINDS = new Set(["PAGE", "ROUTE", "REDIRECT", "IMAGE"]);
 
 /**
  * Validate that a parsed JSON value has the expected KVCacheEntry shape.
  * Returns the validated entry or null if the shape is invalid.
  */
 function validateCacheEntry(raw: unknown): KVCacheEntry | null {
-	if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object") return null;
 
-	const obj = raw as Record<string, unknown>;
+  const obj = raw as Record<string, unknown>;
 
-	// Required fields
-	if (typeof obj.last_modified !== "number") return null;
-	if (!Array.isArray(obj.tags)) return null;
-	if (
-		obj.revalidate_at !== null &&
-		typeof obj.revalidate_at !== "number"
-	) return null;
+  // Required fields
+  if (typeof obj.last_modified !== "number") return null;
+  if (!Array.isArray(obj.tags)) return null;
+  if (obj.revalidate_at !== null && typeof obj.revalidate_at !== "number")
+    return null;
 
-	// value must be null or a valid cache value object with a known kind
-	if (obj.value !== null) {
-		if (!obj.value || typeof obj.value !== "object") return null;
-		const value = obj.value as Record<string, unknown>;
-		if (typeof value.kind !== "string" || !VALID_KINDS.has(value.kind)) return null;
-	}
+  // value must be null or a valid cache value object with a known kind
+  if (obj.value !== null) {
+    if (!obj.value || typeof obj.value !== "object") return null;
+    const value = obj.value as Record<string, unknown>;
+    if (typeof value.kind !== "string" || !VALID_KINDS.has(value.kind))
+      return null;
+  }
 
-	return raw as KVCacheEntry;
+  return raw as KVCacheEntry;
 }
 
 // --- ArrayBuffer Serialization Helpers ---------------------------------------
@@ -292,19 +296,19 @@ function validateCacheEntry(raw: unknown): KVCacheEntry | null {
  * so the entire structure can be JSON.stringify'd for KV storage.
  */
 function serializeForJSON(value: IncrementalCacheValue): IncrementalCacheValue {
-	if (value.kind === "ROUTE") {
-		return {
-			...value,
-			body: arrayBufferToBase64(value.body) as unknown as ArrayBuffer,
-		};
-	}
-	if (value.kind === "IMAGE") {
-		return {
-			...value,
-			buffer: arrayBufferToBase64(value.buffer) as unknown as ArrayBuffer,
-		};
-	}
-	return value;
+  if (value.kind === "ROUTE") {
+    return {
+      ...value,
+      body: arrayBufferToBase64(value.body) as unknown as ArrayBuffer,
+    };
+  }
+  if (value.kind === "IMAGE") {
+    return {
+      ...value,
+      buffer: arrayBufferToBase64(value.buffer) as unknown as ArrayBuffer,
+    };
+  }
+  return value;
 }
 
 /**
@@ -312,35 +316,35 @@ function serializeForJSON(value: IncrementalCacheValue): IncrementalCacheValue {
  * Returns false if any base64 decode fails (corrupted entry).
  */
 function restoreArrayBuffers(value: IncrementalCacheValue): boolean {
-	if (value.kind === "ROUTE" && typeof value.body === "string") {
-		const decoded = safeBase64ToArrayBuffer(value.body as unknown as string);
-		if (!decoded) return false;
-		(value as Record<string, unknown>).body = decoded;
-	}
-	if (value.kind === "IMAGE" && typeof value.buffer === "string") {
-		const decoded = safeBase64ToArrayBuffer(value.buffer as unknown as string);
-		if (!decoded) return false;
-		(value as Record<string, unknown>).buffer = decoded;
-	}
-	return true;
+  if (value.kind === "ROUTE" && typeof value.body === "string") {
+    const decoded = safeBase64ToArrayBuffer(value.body as unknown as string);
+    if (!decoded) return false;
+    (value as unknown as Record<string, unknown>).body = decoded;
+  }
+  if (value.kind === "IMAGE" && typeof value.buffer === "string") {
+    const decoded = safeBase64ToArrayBuffer(value.buffer as unknown as string);
+    if (!decoded) return false;
+    (value as unknown as Record<string, unknown>).buffer = decoded;
+  }
+  return true;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-	const bytes = new Uint8Array(buffer);
-	let binary = "";
-	for (let i = 0; i < bytes.length; i++) {
-		binary += String.fromCharCode(bytes[i]);
-	}
-	return btoa(binary);
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
-	const binary = atob(base64);
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) {
-		bytes[i] = binary.charCodeAt(i);
-	}
-	return bytes.buffer;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
 }
 
 /**
@@ -348,10 +352,10 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
  * instead of throwing a DOMException.
  */
 function safeBase64ToArrayBuffer(base64: string): ArrayBuffer | null {
-	try {
-		return base64ToArrayBuffer(base64);
-	} catch {
-		console.error("[vinuxt] Invalid base64 in cache entry");
-		return null;
-	}
+  try {
+    return base64ToArrayBuffer(base64);
+  } catch {
+    console.error("[vinuxt] Invalid base64 in cache entry");
+    return null;
+  }
 }

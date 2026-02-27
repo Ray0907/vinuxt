@@ -42,6 +42,7 @@ interface ServerEntry {
     router: {
       currentRoute: { value: { matched: unknown[] } };
     };
+    payload?: { serialize?: () => string };
   }>;
 }
 

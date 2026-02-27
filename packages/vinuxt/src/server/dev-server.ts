@@ -21,7 +21,7 @@ export function createSSRHandler(server: ViteDevServer) {
     res: ServerResponse,
     next: (err?: unknown) => void,
   ): Promise<void> => {
-    const url = req.originalUrl || "/";
+    const url = (req as Record<string, any>).originalUrl || req.url || "/";
 
     try {
       // 1. Load the server entry via Vite's SSR module loader
@@ -60,7 +60,7 @@ export function createSSRHandler(server: ViteDevServer) {
       const html_transformed = await server.transformIndexHtml(
         url,
         html,
-        req.originalUrl,
+        (req as Record<string, any>).originalUrl,
       );
 
       // 9. Send response
