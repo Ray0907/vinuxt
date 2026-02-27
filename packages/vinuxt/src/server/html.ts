@@ -6,16 +6,16 @@
  */
 
 export interface HtmlShellOptions {
-	/** <title>, <meta>, <link> tags for the <head> */
-	head: string;
-	/** SSR-rendered HTML string from renderToString */
-	appHtml: string;
-	/** JSON string of __VINUXT_DATA__ payload */
-	payload: string;
-	/** Script module src URLs */
-	scripts: string[];
-	/** Stylesheet href URLs */
-	styles: string[];
+  /** <title>, <meta>, <link> tags for the <head> */
+  head: string;
+  /** SSR-rendered HTML string from renderToString */
+  appHtml: string;
+  /** JSON string of __VINUXT_DATA__ payload */
+  payload: string;
+  /** Script module src URLs */
+  scripts: string[];
+  /** Stylesheet href URLs */
+  styles: string[];
 }
 
 /**
@@ -34,12 +34,12 @@ export interface HtmlShellOptions {
  *   \u2029 -> \\u2029  (paragraph separator -- same)
  */
 function escapePayload(json: string): string {
-	return json
-		.replace(/</g, "\\u003c")
-		.replace(/>/g, "\\u003e")
-		.replace(/&/g, "\\u0026")
-		.replace(/\u2028/g, "\\u2028")
-		.replace(/\u2029/g, "\\u2029");
+  return json
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 /**
@@ -50,19 +50,27 @@ function escapePayload(json: string): string {
  * this prevents XSS via `</script>` in data values.
  */
 export function generateHtmlShell(options: HtmlShellOptions): string {
-	const { head, appHtml, payload, scripts, styles } = options;
+  const { head, appHtml, payload, scripts, styles } = options;
 
-	const style_tags = styles
-		.map((href) => `<link rel="stylesheet" href="${href}" />`)
-		.join("\n\t\t");
+  const style_tags = styles
+    .map((href) => `<link rel="stylesheet" href="${href}" />`)
+    .join("\n\t\t");
 
-	const script_tags = scripts
-		.map((src) => `<script type="module" src="${src}"></script>`)
-		.join("\n\t\t");
+  const script_tags = scripts
+    .map((src) => {
+      // Virtual modules (containing ":") can't be used as script src --
+      // browsers parse the colon as a protocol scheme (like http:).
+      // Use an inline import so Vite's transform pipeline resolves it.
+      if (src.includes(":")) {
+        return `<script type="module">import ${JSON.stringify(src)};</script>`;
+      }
+      return `<script type="module" src="${src}"></script>`;
+    })
+    .join("\n\t\t");
 
-	const payload_escaped = escapePayload(payload);
+  const payload_escaped = escapePayload(payload);
 
-	return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8" />

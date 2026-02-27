@@ -1,222 +1,292 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-	defineEventHandler,
-	scanApiRoutes,
-	filePathToRoutePattern,
-	extractHttpMethod,
-	type ApiRoute,
+  defineEventHandler,
+  scanApiRoutes,
+  filePathToRoutePattern,
+  extractHttpMethod,
+  matchApiRoute,
+  type ApiRoute,
 } from "../../packages/vinuxt/src/server/api-handler.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import os from "node:os";
 
 describe("defineEventHandler", () => {
-	it("returns the handler function as-is (identity wrapper)", () => {
-		const handler = () => ({ message: "hello" });
-		const wrapped = defineEventHandler(handler);
-		expect(wrapped).toBe(handler);
-	});
+  it("returns the handler function as-is (identity wrapper)", () => {
+    const handler = () => ({ message: "hello" });
+    const wrapped = defineEventHandler(handler);
+    expect(wrapped).toBe(handler);
+  });
 
-	it("works with async handlers", () => {
-		const handler = async () => ({ message: "hello" });
-		const wrapped = defineEventHandler(handler);
-		expect(wrapped).toBe(handler);
-	});
+  it("works with async handlers", () => {
+    const handler = async () => ({ message: "hello" });
+    const wrapped = defineEventHandler(handler);
+    expect(wrapped).toBe(handler);
+  });
 });
 
 describe("extractHttpMethod", () => {
-	it("extracts GET method from filename", () => {
-		expect(extractHttpMethod("users.get.ts")).toBe("get");
-	});
+  it("extracts GET method from filename", () => {
+    expect(extractHttpMethod("users.get.ts")).toBe("get");
+  });
 
-	it("extracts POST method from filename", () => {
-		expect(extractHttpMethod("users.post.ts")).toBe("post");
-	});
+  it("extracts POST method from filename", () => {
+    expect(extractHttpMethod("users.post.ts")).toBe("post");
+  });
 
-	it("extracts PUT method from filename", () => {
-		expect(extractHttpMethod("users.put.ts")).toBe("put");
-	});
+  it("extracts PUT method from filename", () => {
+    expect(extractHttpMethod("users.put.ts")).toBe("put");
+  });
 
-	it("extracts DELETE method from filename", () => {
-		expect(extractHttpMethod("users.delete.ts")).toBe("delete");
-	});
+  it("extracts DELETE method from filename", () => {
+    expect(extractHttpMethod("users.delete.ts")).toBe("delete");
+  });
 
-	it("extracts PATCH method from filename", () => {
-		expect(extractHttpMethod("users.patch.ts")).toBe("patch");
-	});
+  it("extracts PATCH method from filename", () => {
+    expect(extractHttpMethod("users.patch.ts")).toBe("patch");
+  });
 
-	it("returns null for filenames without method suffix", () => {
-		expect(extractHttpMethod("users.ts")).toBeNull();
-	});
+  it("returns null for filenames without method suffix", () => {
+    expect(extractHttpMethod("users.ts")).toBeNull();
+  });
 
-	it("returns null for index files", () => {
-		expect(extractHttpMethod("index.ts")).toBeNull();
-	});
+  it("returns null for index files", () => {
+    expect(extractHttpMethod("index.ts")).toBeNull();
+  });
 
-	it("handles .js extensions", () => {
-		expect(extractHttpMethod("users.get.js")).toBe("get");
-	});
+  it("handles .js extensions", () => {
+    expect(extractHttpMethod("users.get.js")).toBe("get");
+  });
 });
 
 describe("filePathToRoutePattern", () => {
-	it("maps api file to /api/ route", () => {
-		expect(filePathToRoutePattern("server/api/users.ts", "api")).toBe(
-			"/api/users",
-		);
-	});
+  it("maps api file to /api/ route", () => {
+    expect(filePathToRoutePattern("server/api/users.ts", "api")).toBe(
+      "/api/users",
+    );
+  });
 
-	it("maps nested api file to nested route", () => {
-		expect(
-			filePathToRoutePattern("server/api/users/profile.ts", "api"),
-		).toBe("/api/users/profile");
-	});
+  it("maps nested api file to nested route", () => {
+    expect(filePathToRoutePattern("server/api/users/profile.ts", "api")).toBe(
+      "/api/users/profile",
+    );
+  });
 
-	it("maps index file to parent route", () => {
-		expect(filePathToRoutePattern("server/api/users/index.ts", "api")).toBe(
-			"/api/users",
-		);
-	});
+  it("maps index file to parent route", () => {
+    expect(filePathToRoutePattern("server/api/users/index.ts", "api")).toBe(
+      "/api/users",
+    );
+  });
 
-	it("converts bracket params to :param syntax", () => {
-		expect(
-			filePathToRoutePattern("server/api/users/[id].ts", "api"),
-		).toBe("/api/users/:id");
-	});
+  it("converts bracket params to :param syntax", () => {
+    expect(filePathToRoutePattern("server/api/users/[id].ts", "api")).toBe(
+      "/api/users/:id",
+    );
+  });
 
-	it("converts nested bracket params", () => {
-		expect(
-			filePathToRoutePattern(
-				"server/api/users/[id]/posts/[postId].ts",
-				"api",
-			),
-		).toBe("/api/users/:id/posts/:postId");
-	});
+  it("converts nested bracket params", () => {
+    expect(
+      filePathToRoutePattern("server/api/users/[id]/posts/[postId].ts", "api"),
+    ).toBe("/api/users/:id/posts/:postId");
+  });
 
-	it("converts catch-all params", () => {
-		expect(
-			filePathToRoutePattern("server/api/[...slug].ts", "api"),
-		).toBe("/api/:slug+");
-	});
+  it("converts catch-all params", () => {
+    expect(filePathToRoutePattern("server/api/[...slug].ts", "api")).toBe(
+      "/api/:slug+",
+    );
+  });
 
-	it("maps routes dir file without prefix", () => {
-		expect(filePathToRoutePattern("server/routes/health.ts", "routes")).toBe(
-			"/health",
-		);
-	});
+  it("maps routes dir file without prefix", () => {
+    expect(filePathToRoutePattern("server/routes/health.ts", "routes")).toBe(
+      "/health",
+    );
+  });
 
-	it("strips method suffix from pattern", () => {
-		expect(filePathToRoutePattern("server/api/users.get.ts", "api")).toBe(
-			"/api/users",
-		);
-	});
+  it("strips method suffix from pattern", () => {
+    expect(filePathToRoutePattern("server/api/users.get.ts", "api")).toBe(
+      "/api/users",
+    );
+  });
 
-	it("maps root index.ts in api to /api", () => {
-		expect(filePathToRoutePattern("server/api/index.ts", "api")).toBe(
-			"/api",
-		);
-	});
+  it("maps root index.ts in api to /api", () => {
+    expect(filePathToRoutePattern("server/api/index.ts", "api")).toBe("/api");
+  });
 });
 
 describe("scanApiRoutes", () => {
-	let dir_tmp: string;
+  let dir_tmp: string;
 
-	beforeEach(async () => {
-		dir_tmp = await fs.mkdtemp(path.join(os.tmpdir(), "vinuxt-api-test-"));
-	});
+  beforeEach(async () => {
+    dir_tmp = await fs.mkdtemp(path.join(os.tmpdir(), "vinuxt-api-test-"));
+  });
 
-	afterEach(async () => {
-		await fs.rm(dir_tmp, { recursive: true, force: true });
-	});
+  afterEach(async () => {
+    await fs.rm(dir_tmp, { recursive: true, force: true });
+  });
 
-	it("scans server/api/ directory", async () => {
-		const dir_api = path.join(dir_tmp, "server", "api");
-		await fs.mkdir(dir_api, { recursive: true });
-		await fs.writeFile(
-			path.join(dir_api, "users.ts"),
-			"export default defineEventHandler(() => [])",
-		);
+  it("scans server/api/ directory", async () => {
+    const dir_api = path.join(dir_tmp, "server", "api");
+    await fs.mkdir(dir_api, { recursive: true });
+    await fs.writeFile(
+      path.join(dir_api, "users.ts"),
+      "export default defineEventHandler(() => [])",
+    );
 
-		const routes = await scanApiRoutes(dir_tmp);
-		expect(routes).toHaveLength(1);
-		expect(routes[0].pattern).toBe("/api/users");
-		expect(routes[0].method).toBeNull();
-		expect(routes[0].file_path).toBe(path.join(dir_api, "users.ts"));
-	});
+    const routes = await scanApiRoutes(dir_tmp);
+    expect(routes).toHaveLength(1);
+    expect(routes[0].pattern).toBe("/api/users");
+    expect(routes[0].method).toBeNull();
+    expect(routes[0].file_path).toBe(path.join(dir_api, "users.ts"));
+  });
 
-	it("scans server/routes/ directory", async () => {
-		const dir_routes = path.join(dir_tmp, "server", "routes");
-		await fs.mkdir(dir_routes, { recursive: true });
-		await fs.writeFile(
-			path.join(dir_routes, "health.ts"),
-			"export default defineEventHandler(() => ({ ok: true }))",
-		);
+  it("scans server/routes/ directory", async () => {
+    const dir_routes = path.join(dir_tmp, "server", "routes");
+    await fs.mkdir(dir_routes, { recursive: true });
+    await fs.writeFile(
+      path.join(dir_routes, "health.ts"),
+      "export default defineEventHandler(() => ({ ok: true }))",
+    );
 
-		const routes = await scanApiRoutes(dir_tmp);
-		expect(routes).toHaveLength(1);
-		expect(routes[0].pattern).toBe("/health");
-	});
+    const routes = await scanApiRoutes(dir_tmp);
+    expect(routes).toHaveLength(1);
+    expect(routes[0].pattern).toBe("/health");
+  });
 
-	it("scans both api and routes directories", async () => {
-		const dir_api = path.join(dir_tmp, "server", "api");
-		const dir_routes = path.join(dir_tmp, "server", "routes");
-		await fs.mkdir(dir_api, { recursive: true });
-		await fs.mkdir(dir_routes, { recursive: true });
-		await fs.writeFile(path.join(dir_api, "users.ts"), "export default () => []");
-		await fs.writeFile(
-			path.join(dir_routes, "health.ts"),
-			"export default () => true",
-		);
+  it("scans both api and routes directories", async () => {
+    const dir_api = path.join(dir_tmp, "server", "api");
+    const dir_routes = path.join(dir_tmp, "server", "routes");
+    await fs.mkdir(dir_api, { recursive: true });
+    await fs.mkdir(dir_routes, { recursive: true });
+    await fs.writeFile(
+      path.join(dir_api, "users.ts"),
+      "export default () => []",
+    );
+    await fs.writeFile(
+      path.join(dir_routes, "health.ts"),
+      "export default () => true",
+    );
 
-		const routes = await scanApiRoutes(dir_tmp);
-		expect(routes).toHaveLength(2);
-		const patterns = routes.map((r) => r.pattern).sort();
-		expect(patterns).toEqual(["/api/users", "/health"]);
-	});
+    const routes = await scanApiRoutes(dir_tmp);
+    expect(routes).toHaveLength(2);
+    const patterns = routes.map((r) => r.pattern).sort();
+    expect(patterns).toEqual(["/api/users", "/health"]);
+  });
 
-	it("extracts HTTP method from filename", async () => {
-		const dir_api = path.join(dir_tmp, "server", "api");
-		await fs.mkdir(dir_api, { recursive: true });
-		await fs.writeFile(path.join(dir_api, "users.get.ts"), "export default () => []");
-		await fs.writeFile(
-			path.join(dir_api, "users.post.ts"),
-			"export default () => ({})",
-		);
+  it("extracts HTTP method from filename", async () => {
+    const dir_api = path.join(dir_tmp, "server", "api");
+    await fs.mkdir(dir_api, { recursive: true });
+    await fs.writeFile(
+      path.join(dir_api, "users.get.ts"),
+      "export default () => []",
+    );
+    await fs.writeFile(
+      path.join(dir_api, "users.post.ts"),
+      "export default () => ({})",
+    );
 
-		const routes = await scanApiRoutes(dir_tmp);
-		expect(routes).toHaveLength(2);
-		const route_get = routes.find((r) => r.method === "get");
-		const route_post = routes.find((r) => r.method === "post");
-		expect(route_get).toBeDefined();
-		expect(route_get!.pattern).toBe("/api/users");
-		expect(route_post).toBeDefined();
-		expect(route_post!.pattern).toBe("/api/users");
-	});
+    const routes = await scanApiRoutes(dir_tmp);
+    expect(routes).toHaveLength(2);
+    const route_get = routes.find((r) => r.method === "get");
+    const route_post = routes.find((r) => r.method === "post");
+    expect(route_get).toBeDefined();
+    expect(route_get!.pattern).toBe("/api/users");
+    expect(route_post).toBeDefined();
+    expect(route_post!.pattern).toBe("/api/users");
+  });
 
-	it("handles dynamic segments", async () => {
-		const dir_api = path.join(dir_tmp, "server", "api", "users");
-		await fs.mkdir(dir_api, { recursive: true });
-		await fs.writeFile(
-			path.join(dir_api, "[id].ts"),
-			"export default () => ({})",
-		);
+  it("handles dynamic segments", async () => {
+    const dir_api = path.join(dir_tmp, "server", "api", "users");
+    await fs.mkdir(dir_api, { recursive: true });
+    await fs.writeFile(
+      path.join(dir_api, "[id].ts"),
+      "export default () => ({})",
+    );
 
-		const routes = await scanApiRoutes(dir_tmp);
-		expect(routes).toHaveLength(1);
-		expect(routes[0].pattern).toBe("/api/users/:id");
-	});
+    const routes = await scanApiRoutes(dir_tmp);
+    expect(routes).toHaveLength(1);
+    expect(routes[0].pattern).toBe("/api/users/:id");
+  });
 
-	it("returns empty array when server directory does not exist", async () => {
-		const routes = await scanApiRoutes(dir_tmp);
-		expect(routes).toEqual([]);
-	});
+  it("returns empty array when server directory does not exist", async () => {
+    const routes = await scanApiRoutes(dir_tmp);
+    expect(routes).toEqual([]);
+  });
 
-	it("ignores non ts/js files", async () => {
-		const dir_api = path.join(dir_tmp, "server", "api");
-		await fs.mkdir(dir_api, { recursive: true });
-		await fs.writeFile(path.join(dir_api, "users.ts"), "export default () => []");
-		await fs.writeFile(path.join(dir_api, "README.md"), "# API docs");
+  it("ignores non ts/js files", async () => {
+    const dir_api = path.join(dir_tmp, "server", "api");
+    await fs.mkdir(dir_api, { recursive: true });
+    await fs.writeFile(
+      path.join(dir_api, "users.ts"),
+      "export default () => []",
+    );
+    await fs.writeFile(path.join(dir_api, "README.md"), "# API docs");
 
-		const routes = await scanApiRoutes(dir_tmp);
-		expect(routes).toHaveLength(1);
-	});
+    const routes = await scanApiRoutes(dir_tmp);
+    expect(routes).toHaveLength(1);
+  });
+});
+
+describe("matchApiRoute", () => {
+  const routes: ApiRoute[] = [
+    {
+      pattern: "/api/hello",
+      file_path: "/srv/server/api/hello.ts",
+      method: null,
+    },
+    {
+      pattern: "/api/users",
+      file_path: "/srv/server/api/users.get.ts",
+      method: "get",
+    },
+    {
+      pattern: "/api/users",
+      file_path: "/srv/server/api/users.post.ts",
+      method: "post",
+    },
+    {
+      pattern: "/api/users/:id",
+      file_path: "/srv/server/api/users/[id].ts",
+      method: null,
+    },
+    {
+      pattern: "/api/docs/:slug+",
+      file_path: "/srv/server/api/docs/[...slug].ts",
+      method: null,
+    },
+  ];
+
+  it("matches a static route", () => {
+    const result = matchApiRoute("/api/hello", "GET", routes);
+    expect(result).not.toBeNull();
+    expect(result!.route.pattern).toBe("/api/hello");
+    expect(result!.params).toEqual({});
+  });
+
+  it("matches a method-constrained route", () => {
+    const result = matchApiRoute("/api/users", "POST", routes);
+    expect(result).not.toBeNull();
+    expect(result!.route.method).toBe("post");
+  });
+
+  it("rejects wrong method for constrained route", () => {
+    const result = matchApiRoute("/api/users", "DELETE", routes);
+    expect(result).toBeNull();
+  });
+
+  it("matches dynamic segment and extracts params", () => {
+    const result = matchApiRoute("/api/users/42", "GET", routes);
+    expect(result).not.toBeNull();
+    expect(result!.params).toEqual({ id: "42" });
+  });
+
+  it("matches catch-all segment", () => {
+    const result = matchApiRoute("/api/docs/guides/setup/intro", "GET", routes);
+    expect(result).not.toBeNull();
+    expect(result!.params).toEqual({ slug: "guides/setup/intro" });
+  });
+
+  it("returns null for non-matching path", () => {
+    const result = matchApiRoute("/api/nonexistent", "GET", routes);
+    expect(result).toBeNull();
+  });
 });

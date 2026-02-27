@@ -376,9 +376,21 @@ async function deployCommand() {
   const parsed = parseArgs(rawArgs);
   if (parsed.help) return printHelp("deploy");
 
-  // TODO: implement deploy -- requires ./deploy.js
-  console.log("\n  vinuxt deploy is not yet implemented.\n");
-  process.exit(1);
+  const { deploy, parseDeployArgs } = await import("./deploy.js");
+  const deploy_args = parseDeployArgs(rawArgs);
+
+  await deploy({
+    root: process.cwd(),
+    preview: deploy_args.preview,
+    env: deploy_args.env,
+    name: deploy_args.name,
+    skipBuild: deploy_args.skipBuild,
+    dryRun: deploy_args.dryRun,
+    experimentalTPR: deploy_args.experimentalTPR,
+    tprCoverage: deploy_args.tprCoverage,
+    tprLimit: deploy_args.tprLimit,
+    tprWindow: deploy_args.tprWindow,
+  });
 }
 
 async function check() {

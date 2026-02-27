@@ -250,7 +250,7 @@ async function renderSSR(
 ): Promise<void> {
   const { renderToString } = await import("vue/server-renderer");
 
-  const { app, router } = await server_entry.createApp(url);
+  const { app, router, payload } = await server_entry.createApp(url);
 
   // Check if route matched
   if (!router.currentRoute.value.matched.length) {
@@ -261,12 +261,12 @@ async function renderSSR(
   }
 
   const app_html = await renderToString(app);
-  const payload = JSON.stringify({});
+  const payload_json = payload?.serialize?.() ?? JSON.stringify({});
 
   const html = generateHtmlShell({
     head: "",
     appHtml: app_html,
-    payload,
+    payload: payload_json,
     scripts: preload.scripts,
     styles: preload.styles,
   });
