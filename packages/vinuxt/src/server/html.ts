@@ -75,6 +75,7 @@ export function generateHtmlShell(options: HtmlShellOptions): string {
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 	${head}
 	${style_tags}
 </head>
