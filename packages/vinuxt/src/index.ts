@@ -552,7 +552,6 @@ app.use(router);
 
 router.isReady().then(() => {
 	app.mount("#__nuxt");
-	console.log("[vinuxt] hydrated");
 });
 `;
 }
