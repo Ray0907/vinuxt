@@ -3,7 +3,7 @@
 	"private": true,
 	"packageManager": "pnpm@10.30.0",
 	"scripts": {
-		"build": "pnpm --filter vinuxt run build",
+		"build": "pnpm --filter @raytien/vinuxt run build",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"typecheck": "tsgo --noEmit",

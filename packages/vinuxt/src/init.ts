@@ -57,7 +57,7 @@ export interface InitResult {
 // -- Vite Config Generation ---------------------------------------------------
 
 export function generateViteConfig(): string {
-  return `import vinuxt from "vinuxt";
+  return `import vinuxt from "@raytien/vinuxt";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -158,7 +158,7 @@ export function hasNuxtConfig(root: string): boolean {
 // -- Dependency Installation --------------------------------------------------
 
 export function getInitDeps(): string[] {
-  return ["vinuxt", "vite"];
+  return ["@raytien/vinuxt", "vite"];
 }
 
 export function isDepInstalled(root: string, dep: string): boolean {

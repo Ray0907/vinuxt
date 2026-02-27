@@ -7,7 +7,7 @@ The Nuxt API surface, reimplemented on Vite.
 ## Quick start
 
 ```bash
-pnpm add -D vinuxt vite
+pnpm add -D @raytien/vinuxt vite
 ```
 
 Replace `nuxt` with `vinuxt` in your scripts:
