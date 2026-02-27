@@ -78,7 +78,7 @@ export function generateHtmlShell(options: HtmlShellOptions): string {
 	${head}
 	${style_tags}
 </head>
-<body>
+<body style="background:#0F172A">
 	<div id="__nuxt">${appHtml}</div>
 	<script>window.__VINUXT_DATA__=JSON.parse(${JSON.stringify(payload_escaped)})</script>
 	${script_tags}

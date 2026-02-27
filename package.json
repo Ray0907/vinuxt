@@ -7,7 +7,14 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"typecheck": "tsgo --noEmit",
+		"bench": "vitest bench",
 		"lint": "oxlint --deny-warnings"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"@parcel/watcher"
+		]
 	},
 	"devDependencies": {
 		"@types/node": "^25.2.3",

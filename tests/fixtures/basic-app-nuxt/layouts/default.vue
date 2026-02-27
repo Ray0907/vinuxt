@@ -2,14 +2,14 @@
 	<div class="layout-default">
 		<nav class="nav">
 			<div class="nav-inner">
-				<NuxtLink to="/" class="logo">
-					<span class="logo-icon">V</span>
-					<span class="logo-text">vinuxt</span>
-				</NuxtLink>
+				<a href="/" class="logo">
+					<span class="logo-icon">N</span>
+					<span class="logo-text">nuxt</span>
+				</a>
 				<div class="nav-links">
-					<NuxtLink to="/" class="nav-link">Home</NuxtLink>
-					<NuxtLink to="/about" class="nav-link">About</NuxtLink>
-					<NuxtLink to="/posts/1" class="nav-link">Posts</NuxtLink>
+					<a href="/" class="nav-link">Home</a>
+					<a href="/about" class="nav-link">About</a>
+					<a href="/posts/1" class="nav-link">Posts</a>
 				</div>
 			</div>
 		</nav>
@@ -17,7 +17,7 @@
 			<slot />
 		</main>
 		<footer class="footer">
-			<p class="footer-text">vinuxt -- Nuxt apps on Vite</p>
+			<p class="footer-text">nuxt baseline</p>
 		</footer>
 	</div>
 </template>
@@ -30,8 +30,8 @@
 	--text-primary: #F1F5F9;
 	--text-secondary: #94A3B8;
 	--text-muted: #64748B;
-	--accent: #00DC82;
-	--accent-hover: #36E8A0;
+	--accent: #3B82F6;
+	--accent-hover: #60A5FA;
 	--border: #334155;
 	--radius: 8px;
 }
@@ -123,7 +123,7 @@ body {
 
 .nav-link:hover {
 	color: var(--text-primary);
-	background: rgba(0, 220, 130, 0.1);
+	background: rgba(59, 130, 246, 0.1);
 }
 
 .main {

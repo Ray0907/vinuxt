@@ -104,6 +104,6 @@ describe("vinuxt dev server integration", () => {
     expect(html).toContain("<html");
     expect(html).toContain("</html>");
     expect(html).toContain("<head>");
-    expect(html).toContain("<body>");
+    expect(html).toContain("<body");
   });
 });

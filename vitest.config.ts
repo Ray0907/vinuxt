@@ -8,4 +8,8 @@ export default defineConfig({
     passWithNoTests: true,
     reporters: process.env.CI ? ["default", "github-actions"] : ["default"],
   },
+  benchmark: {
+    include: ["tests/bench/**/*.bench.ts"],
+    fileParallelism: false,
+  },
 });

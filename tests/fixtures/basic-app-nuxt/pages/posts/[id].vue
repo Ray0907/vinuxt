@@ -1,6 +1,6 @@
 <template>
 	<div class="post">
-		<NuxtLink to="/" class="breadcrumb">Home</NuxtLink>
+		<a href="/" class="breadcrumb">Home</a>
 		<span class="breadcrumb-sep">/</span>
 		<span class="breadcrumb-current">Post {{ $route.params.id }}</span>
 
@@ -16,7 +16,7 @@
 				<code>$route.params.id</code>.
 			</p>
 			<div class="post-footer">
-				<NuxtLink to="/" class="btn-back">Back Home</NuxtLink>
+				<a href="/" class="btn-back">Back Home</a>
 			</div>
 		</div>
 	</div>
@@ -71,7 +71,7 @@
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 	color: var(--accent);
-	background: rgba(0, 220, 130, 0.12);
+	background: rgba(59, 130, 246, 0.12);
 	padding: 3px 8px;
 	border-radius: 4px;
 }
@@ -98,7 +98,7 @@ h1 {
 code {
 	font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
 	font-size: 13px;
-	background: rgba(0, 220, 130, 0.15);
+	background: rgba(59, 130, 246, 0.15);
 	color: var(--accent);
 	padding: 2px 6px;
 	border-radius: 4px;

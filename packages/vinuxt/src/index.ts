@@ -200,7 +200,7 @@ export default function vinuxt(): Plugin[] {
             // them installed (pnpm strict isolation).
             "vue-router": resolvePackageDir("vue-router"),
           },
-          dedupe: ["vue", "vue-router", "@vue/runtime-core"],
+          dedupe: ["vue", "vue-router"],
         },
         ssr: {
           noExternal: ["vue-router", "@unhead/vue", "@unpic/vue"],

@@ -2,14 +2,13 @@
 	<div class="home">
 		<section class="hero">
 			<div class="badge">Open Source Framework</div>
-			<h1>Vinuxt Works!</h1>
+			<h1>Nuxt Baseline</h1>
 			<p class="hero-sub">
-				Run your Nuxt apps on pure Vite. Same pages, composables, and conventions
-				-- faster dev server, simpler build pipeline.
+				Baseline benchmark app running on stock Nuxt with identical pages and routes.
 			</p>
 			<div class="hero-actions">
-				<NuxtLink to="/about" class="btn btn-primary">Go to About</NuxtLink>
-				<NuxtLink to="/posts/1" class="btn btn-secondary">View Posts</NuxtLink>
+				<a href="/about" class="btn btn-primary">Go to About</a>
+				<a href="/posts/1" class="btn btn-secondary">View Posts</a>
 			</div>
 		</section>
 
@@ -38,11 +37,10 @@
 				<span class="code-dot" style="background: #22C55E;"></span>
 				<span class="code-title">terminal</span>
 			</div>
-			<pre class="code-content"><span class="code-comment"># Drop-in replacement</span>
-<span class="code-prompt">$</span> npx vinuxt dev
+			<pre class="code-content"><span class="code-comment"># Stock Nuxt</span>
+<span class="code-prompt">$</span> npx nuxt dev
 
-<span class="code-output">  vinuxt dev  (Vite 7.3.1)
-
+<span class="code-output">  Nuxt 3.x
   Local:   http://localhost:3000/</span></pre>
 		</section>
 	</div>
@@ -77,7 +75,7 @@ h1 {
 	font-weight: 700;
 	letter-spacing: -0.03em;
 	line-height: 1.1;
-	background: linear-gradient(135deg, #F1F5F9, #00DC82);
+	background: linear-gradient(135deg, #F1F5F9, #3B82F6);
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;

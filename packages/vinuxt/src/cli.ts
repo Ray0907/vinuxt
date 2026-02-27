@@ -148,9 +148,11 @@ function buildViteConfig(overrides: Record<string, unknown> = {}) {
     plugins: [vinuxt()],
     // Deduplicate Vue packages to prevent issues when vinuxt is symlinked
     // (pnpm link) and both vinuxt's and the project's node_modules
-    // contain Vue.
+    // contain Vue. Only dedupe direct dependencies -- @vue/* internal
+    // packages are transitive and can't be resolved from the project root
+    // in pnpm strict mode, which breaks Rollup's production resolver.
     resolve: {
-      dedupe: ["vue", "vue-router", "@vue/runtime-core"],
+      dedupe: ["vue", "vue-router"],
     },
     ...overrides,
   };
@@ -231,9 +233,10 @@ async function buildApp() {
     buildViteConfig({
       build: {
         outDir: "dist/server",
-        ssr: "virtual:vinuxt-server-entry",
+        ssr: true,
         emptyOutDir: true,
         rollupOptions: {
+          input: "virtual:vinuxt-server-entry",
           output: {
             entryFileNames: "entry.js",
           },

@@ -2,35 +2,35 @@
 	<div class="about">
 		<div class="about-header">
 			<h1>About Page</h1>
-			<p class="about-lead">Built with Vinuxt -- a faster way to run Nuxt apps.</p>
+			<p class="about-lead">Nuxt baseline benchmark app.</p>
 		</div>
 
 		<div class="about-grid">
 			<div class="about-card">
-				<h3 class="card-title">Why Vinuxt?</h3>
+				<h3 class="card-title">Why Benchmark?</h3>
 				<p class="card-text">
-					Nuxt is an incredible framework, but its build pipeline adds complexity.
-					Vinuxt strips it down to pure Vite while keeping the conventions you know.
+					Comparing vinuxt against stock Nuxt requires identical apps
+					running the same pages, routes, and server APIs.
 				</p>
 			</div>
 			<div class="about-card">
 				<h3 class="card-title">How It Works</h3>
 				<p class="card-text">
-					A set of Vite plugins that handle file-based routing, auto-imports,
-					SSR, layouts, middleware, and composables -- all without Nitro.
+					Same file-based routing, auto-imports,
+					SSR, layouts, middleware, and composables -- stock Nuxt + Nitro.
 				</p>
 			</div>
 			<div class="about-card">
 				<h3 class="card-title">Compatibility</h3>
 				<p class="card-text">
-					Run <code>vinuxt check</code> to see what works. Most Nuxt apps can migrate
-					with zero changes to pages, components, and composables.
+					Both apps share the same Vue pages and composables.
+					Only the framework layer differs.
 				</p>
 			</div>
 		</div>
 
 		<div class="about-cta">
-			<NuxtLink to="/" class="btn-back">Back Home</NuxtLink>
+			<a href="/" class="btn-back">Back Home</a>
 		</div>
 	</div>
 </template>
@@ -97,7 +97,7 @@ h1 {
 code {
 	font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
 	font-size: 13px;
-	background: rgba(0, 220, 130, 0.15);
+	background: rgba(59, 130, 246, 0.15);
 	color: var(--accent);
 	padding: 2px 6px;
 	border-radius: 4px;

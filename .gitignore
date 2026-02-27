@@ -2,3 +2,5 @@
 dist/
 *.tsbuildinfo
 .DS_Store
+.nuxt/
+.output/
