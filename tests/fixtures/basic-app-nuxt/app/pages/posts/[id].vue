@@ -1,6 +1,6 @@
 <template>
 	<div class="post">
-		<a href="/" class="breadcrumb">Home</a>
+		<NuxtLink to="/" class="breadcrumb">Home</NuxtLink>
 		<span class="breadcrumb-sep">/</span>
 		<span class="breadcrumb-current">Post {{ $route.params.id }}</span>
 
@@ -16,7 +16,7 @@
 				<code>$route.params.id</code>.
 			</p>
 			<div class="post-footer">
-				<a href="/" class="btn-back">Back Home</a>
+				<NuxtLink to="/" class="btn-back">Back Home</NuxtLink>
 			</div>
 		</div>
 	</div>

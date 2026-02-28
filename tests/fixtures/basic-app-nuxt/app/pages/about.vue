@@ -30,7 +30,7 @@
 		</div>
 
 		<div class="about-cta">
-			<a href="/" class="btn-back">Back Home</a>
+			<NuxtLink to="/" class="btn-back">Back Home</NuxtLink>
 		</div>
 	</div>
 </template>

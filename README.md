@@ -79,13 +79,27 @@ Options: `-p / --port <port>`, `-H / --hostname <host>`.
 | **vinuxt** | **1,671 ms** | -- |
 | Nuxt 4.3.1 | 2,143 ms | 1.3x slower |
 
-### SSR throughput (warm, req/s)
+### Dev-mode SSR throughput (warm, req/s)
+
+Both servers started with their respective `dev` commands. Nuxt's dev mode includes Nitro dev server overhead, module hot-reload hooks, and payload extraction that don't apply in production.
 
 | Route | vinuxt | Nuxt 4.3.1 | Speedup |
 |-------|--------|------------|---------|
 | `GET /` | **1,092 req/s** | 361 req/s | **3.0x** |
 | `GET /about` | **1,228 req/s** | 349 req/s | **3.5x** |
 | `GET /posts/1` | **1,385 req/s** | 382 req/s | **3.6x** |
+
+### Production SSR throughput (warm, req/s)
+
+Both built with their respective `build` commands, then served via `vinuxt start` / `nuxt preview`.
+
+| Route | vinuxt | Nuxt 4.3.1 | Delta |
+|-------|--------|------------|-------|
+| `GET /` | 1,943 req/s | **2,409 req/s** | Nuxt 1.2x faster |
+| `GET /about` | 2,492 req/s | **3,287 req/s** | Nuxt 1.3x faster |
+| `GET /posts/1` | 2,619 req/s | **3,201 req/s** | Nuxt 1.2x faster |
+
+Nuxt's Nitro/h3 production server is more optimized than vinuxt's plain Node.js HTTP server. The dev-mode advantage above reflects Nuxt's heavier dev-time overhead (module hot-reload, Nitro dev server, payload extraction), not a fundamental SSR performance difference.
 
 ### Production build
 

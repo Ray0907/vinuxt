@@ -7,8 +7,8 @@
 				Baseline benchmark app running on stock Nuxt with identical pages and routes.
 			</p>
 			<div class="hero-actions">
-				<a href="/about" class="btn btn-primary">Go to About</a>
-				<a href="/posts/1" class="btn btn-secondary">View Posts</a>
+				<NuxtLink to="/about" class="btn btn-primary">Go to About</NuxtLink>
+				<NuxtLink to="/posts/1" class="btn btn-secondary">View Posts</NuxtLink>
 			</div>
 		</section>
 
