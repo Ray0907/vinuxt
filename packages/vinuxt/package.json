@@ -1,6 +1,6 @@
 {
 	"name": "@raytien/vinuxt",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Run Nuxt apps on Vite. Drop-in replacement for the nuxt CLI.",
 	"license": "MIT",
 	"repository": {
