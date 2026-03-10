@@ -5,3 +5,4 @@ dist/
 .nuxt/
 .output/
 screenshot-*.png
+packages/vinuxt/README.md
